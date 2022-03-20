@@ -28,7 +28,7 @@ class PreprocessDataset(torch.utils.data.Dataset):
 
         for data_dir in data_dirs:
             speaker_dir_paths = [x for x in Path(data_dir).iterdir() if x.is_dir()]
-            for speaker_dir_path in speaker_dir_paths:
+            for speaker_dir_path in tqdm(speaker_dir_paths):
                 audio_paths = find_files(speaker_dir_path)
                 speaker_name = speaker_dir_path.name
                 self.speakers.add(speaker_name)
@@ -39,6 +39,7 @@ class PreprocessDataset(torch.utils.data.Dataset):
         return len(self.infos)
 
     def __getitem__(self, index):
+        # 返回标签和音频的Mel谱
         speaker_name, audio_path = self.infos[index]
         wav_tensor, sample_rate = torchaudio.load(audio_path)
         mel_tensor = self.wav2mel(wav_tensor, sample_rate)
@@ -48,9 +49,15 @@ class PreprocessDataset(torch.utils.data.Dataset):
 def preprocess(data_dirs, output_dir):
     """Preprocess audio files into features for training."""
 
+    print(f'# 创建保存路径 {output_dir}')
     output_dir_path = Path(output_dir)
     output_dir_path.mkdir(parents=True, exist_ok=True)
 
+    print('# 生成TorchScript...')
+    print(f'#    {str(output_dir_path / "wav2mel.pt")}')
+    print(f'#    {str(output_dir_path / "sox_effects.pt")}')
+    print(f'#    {str(output_dir_path / "log_melspectrogram.pt")}')
+    
     wav2mel = Wav2Mel()
     wav2mel_jit = torch.jit.script(wav2mel)
     sox_effects_jit = torch.jit.script(wav2mel.sox_effects)
@@ -60,7 +67,9 @@ def preprocess(data_dirs, output_dir):
     sox_effects_jit.save(str(output_dir_path / "sox_effects.pt"))
     log_melspectrogram_jit.save(str(output_dir_path / "log_melspectrogram.pt"))
 
-    dataset = PreprocessDataset(data_dirs, wav2mel_jit)
+    print('# 准备Dataset...')
+    dataset = PreprocessDataset(data_dirs, wav2mel_jit) # 
+    print('# 准备DataLoader...')
     dataloader = DataLoader(dataset, batch_size=1, num_workers=cpu_count())
 
     infos = {
@@ -80,13 +89,20 @@ def preprocess(data_dirs, output_dir):
             }
         )
 
+    print(f'# json保存到{output_dir_path / "metadata.json"}')
     with open(output_dir_path / "metadata.json", "w") as f:
         json.dump(infos, f, indent=2)
+        
+    print('\n done.')
 
 
 if __name__ == "__main__":
     filterwarnings("ignore")
     PARSER = ArgumentParser()
-    PARSER.add_argument("data_dirs", type=str, nargs="+")
-    PARSER.add_argument("-o", "--output_dir", type=str, required=True)
+    PARSER.add_argument("data_dirs", type=str, nargs="+") # 数据路径
+    PARSER.add_argument("-o", "--output_dir", type=str, required=True) # 输出路径
+    
+    print('')
+    print('# 解析parser运行参数')
+    
     preprocess(**vars(PARSER.parse_args()))

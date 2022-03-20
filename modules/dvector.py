@@ -12,6 +12,7 @@ from torch import Tensor
 
 class DvectorInterface(nn.Module, metaclass=abc.ABCMeta):
     """d-vector interface."""
+    # 直接交互调用的接口
 
     @classmethod
     def __subclasshook__(cls, subclass):
@@ -97,10 +98,25 @@ class LSTMDvector(DvectorInterface):
         self.embedding = nn.Linear(dim_cell, dim_emb)
         self.seg_len = seg_len
 
+    # input: n_mels=40维Mel谱 
+    #   (batch_size, seg_len, n_mel)
+    # 
+    #   dim_cell=256 LSTM
+    #   dim_cell=256 LSTM
+    #   dim_cell=256 LSTM
+    #   (batch_size, seg_len, dim_cell)
+    #   (batch_size, dim_cell)
+    #   dim_cell=256 FC
+    #   (batch_size, dim_emb)
+    # 
+    #   utterance-level dvector
+    #       d = (batch_size, dim_emb)
+    # 
+    # output: L2-normed dim_emb=256维embedding
     def forward(self, inputs: Tensor) -> Tensor:
         """Forward a batch through network."""
         lstm_outs, _ = self.lstm(inputs)  # (batch, seg_len, dim_cell)
-        embeds = self.embedding(lstm_outs[:, -1, :])  # (batch, dim_emb)
+        embeds = self.embedding(lstm_outs[:, -1, :])  # (batch, dim_emb) # 直接取最后一帧的frame-level embedding作为utterance-level embedding
         return embeds.div(embeds.norm(p=2, dim=-1, keepdim=True))  # (batch, dim_emb)
 
 
@@ -120,11 +136,34 @@ class AttentivePooledLSTMDvector(DvectorInterface):
         self.embedding = nn.Linear(dim_cell, dim_emb)
         self.linear = nn.Linear(dim_emb, 1)
         self.seg_len = seg_len
-
+        
+    # input: n_mels=40维Mel谱
+    #   (batch_size, seg_len, n_mel)
+    #
+    #   dim_cell=256 LSTM
+    #   dim_cell=256 LSTM
+    #   dim_cell=256 LSTM
+    #   (batch_size, seg_len, dim_cell)
+    #   dim_cell=256 tanh(FC)
+    #   (batch_size, seg_len, dim_emb)
+    # 
+    #   frame-level dvector series
+    #       e = (batch_size, seg_len, dim_emb)
+    #   
+    #   (batch_size, seg_len, dim_emb)
+    #   Attention
+    #       attn_weights = softmax(linear(e), dim=1) = (batch_size, seg_len, 1)
+    #       emb = sum(emb*attn_weights, dim=1)
+    #   (batch_size, dim_emb)
+    # 
+    #   utterance-level dvector
+    #       emb = (batch_size, dim_emb)
+    #   
+    # output: L2-normed dim_emb=256维embedding
     def forward(self, inputs: Tensor) -> Tensor:
         """Forward a batch through network."""
         lstm_outs, _ = self.lstm(inputs)  # (batch, seg_len, dim_cell)
-        embeds = torch.tanh(self.embedding(lstm_outs))  # (batch, seg_len, dim_emb)
-        attn_weights = F.softmax(self.linear(embeds), dim=1)
-        embeds = torch.sum(embeds * attn_weights, dim=1)
+        embeds = torch.tanh(self.embedding(lstm_outs))  # (batch, seg_len, dim_emb) 
+        attn_weights = F.softmax(self.linear(embeds), dim=1) # attention weights
+        embeds = torch.sum(embeds * attn_weights, dim=1) # attentive pooling
         return embeds.div(embeds.norm(p=2, dim=-1, keepdim=True))

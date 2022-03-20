@@ -21,6 +21,16 @@ class Wav2Mel(nn.Module):
         n_mels: int = 40,
     ):
         super().__init__()
+        
+        # 若音频时长为l 则共有 L = sample_rate * l个采样点
+        # 记FFT窗长为w 则 w = fft_window_ms/1000 * sample_rate
+        # 记STFT窗移为s 则 s = fft_hop_ms/1000 * sample_rate
+        # 设STFT过程中总过进行了n次窗移 则最终得到总帧数为n+1s
+        # 理想情况下 有如下关系
+        #       n * s + w = L
+        #            故 n = (L-w) / s
+        # 无法整除时音频补零 因此n向上取整
+        # 故总帧数为 n+1 = Up[(L-w)/s]
 
         self.sample_rate = sample_rate
         self.norm_db = norm_db
@@ -41,9 +51,9 @@ class Wav2Mel(nn.Module):
         mel_tensor = self.log_melspectrogram(wav_tensor)
         return mel_tensor
 
-
 class SoxEffects(nn.Module):
     """Transform waveform tensors."""
+    # 通过sox效果进行音频张量进行变换
 
     def __init__(
         self,
