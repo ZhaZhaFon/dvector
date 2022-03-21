@@ -144,8 +144,8 @@ def get_eer(test_dir, test_txt, wav2mel_path, checkpoint_path):
 if __name__ == "__main__":
     filterwarnings("ignore")
     PARSER = ArgumentParser()
-    PARSER.add_argument("test_dir")
-    PARSER.add_argument("test_txt")
+    PARSER.add_argument("--test_dir", required=True)
+    PARSER.add_argument("--test_txt", required=True)
     PARSER.add_argument("-w", "--wav2mel_path", required=True)
     PARSER.add_argument("-c", "--checkpoint_path", required=True)
     equal_error_rate(**vars(PARSER.parse_args()))
