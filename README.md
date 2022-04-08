@@ -55,6 +55,12 @@
 ---
 ---
 
+# D-vector
+
+This is a PyTorch implementation of speaker embedding trained with GE2E loss.
+The original paper about GE2E loss could be found here: [Generalized End-to-End Loss for Speaker Verification](https://arxiv.org/abs/1710.10467)
+
+### Preprocess training data
 To use the script provided here, you have to organize your raw data in this way:
 
 - all utterances from a speaker should be put under a directory (**speaker directory**)
@@ -75,11 +81,6 @@ After preprocessing, 3 preprocessing modules will be saved in the output directo
 
 > The first module `wav2mel.pt` is composed of the second and the third modules.
 > These modules were compiled with TorchScript and can be used anywhere to preprocess audio data.  
-
-# D-vector
-
-This is a PyTorch implementation of speaker embedding trained with GE2E loss.
-The original paper about GE2E loss could be found here: [Generalized End-to-End Loss for Speaker Verification](https://arxiv.org/abs/1710.10467)
 
 ## Usage
 
