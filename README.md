@@ -4,7 +4,6 @@
 [原始仓库链接](https://github.com/yistLin/dvector), 做了一些修改方便使用, 粗体为已跑
 
 * dvector说话人表征
-* 支持**ResNetSE34**/VGGVox等模型
 * 支持**GE2E**训练
 * 支持**VoxCeleb1**/VoxCeleb2
 * [pretrained mode](https://github.com/ZhaZhaFon/repo_dvector/releases/tag/pretrained)
