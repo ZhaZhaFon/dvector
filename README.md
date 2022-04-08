@@ -6,7 +6,7 @@
 * dvector说话人表征
 * 支持**GE2E**训练
 * 支持**VoxCeleb1**/VoxCeleb2
-* [pretrained mode](https://github.com/ZhaZhaFon/repo_dvector/releases/tag/pretrained)
+* [pretrained model](https://github.com/ZhaZhaFon/repo_dvector/releases/tag/pretrained)
 
 ### TODO LIST
 * 集成多下游任务
